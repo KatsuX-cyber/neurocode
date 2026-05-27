@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Lesson } from './pages/Lesson';
 import { Courses } from './pages/Courses';
+import { Profile } from './pages/Profile';
 
 function App() {
   return (
@@ -15,7 +16,7 @@ function App() {
           {/* Placeholders for other routes */}
           <Route path="courses" element={<Courses />} />
           <Route path="achievements" element={<div className="p-8 text-2xl">Conquistas em Breve</div>} />
-          <Route path="profile" element={<div className="p-8 text-2xl">Perfil em Breve</div>} />
+          <Route path="profile" element={<Profile />} />
         </Route>
       </Routes>
     </BrowserRouter>
