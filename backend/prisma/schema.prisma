@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(uuid())
+  name      String
+  email     String     @unique
+  password  String
+  role      String     @default("STUDENT") // STUDENT, ADMIN
+  xp        Int        @default(0)
+  streak    Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  progress  Progress[]
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  level       String   @default("BASIC") // BASIC, INTERMEDIATE, ADVANCED
+  order       Int      @default(0)
+  modules     Module[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  order       Int      @default(0)
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lesson {
+  id              String     @id @default(uuid())
+  title           String
+  language        String     @default("javascript")
+  content         String     // Markdown content
+  codeTemplate    String?    // Initial code for the editor
+  validationLogic String?    // JS snippet to test user code
+  moduleId        String
+  module          Module     @relation(fields: [moduleId], references: [id])
+  order           Int        @default(0)
+  progress        Progress[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Progress {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  lessonId    String
+  lesson      Lesson    @relation(fields: [lessonId], references: [id])
+  status      String    @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED
+  savedCode   String?   
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, lessonId])
+}

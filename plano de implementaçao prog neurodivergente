@@ -1,0 +1,68 @@
+# Plataforma de Ensino de Programação Inclusiva
+
+Este documento detalha o plano de implementação para o desenvolvimento da plataforma de ensino de programação focada na experiência de pessoas neurodivergentes.
+
+## Visão Geral do Projeto
+
+O objetivo é construir uma aplicação de ponta a ponta (Frontend e Backend) que oferece um ambiente seguro, estimulante (na medida certa) e gamificado para o ensino de programação, desde o nível básico ao avançado.
+
+### 🛠️ Stack Tecnológico Proposto
+- **Frontend**: React (com Vite) + TailwindCSS + Zustand (para gerenciamento de estado simples e direto) + Framer Motion (para animações suaves).
+- **Backend**: Node.js com Express.js.
+- **Banco de Dados**: PostgreSQL (ideal para dados estruturados como relacionamentos entre Usuários, Cursos, Módulos, Desafios e Progresso). Prisma como ORM.
+- **Editor de Código**: `@monaco-editor/react` (O mesmo motor do VS Code, poderoso e altamente customizável).
+- **Autenticação**: JWT (JSON Web Tokens).
+
+## ⚠️ Necessário Revisão do Usuário
+
+> [!IMPORTANT]  
+> Por favor, revise as escolhas arquiteturais acima (como o uso do PostgreSQL e Prisma) e confirme se estão alinhadas com suas expectativas.
+
+> [!WARNING]
+> O escopo completo solicitado é extremamente vasto (equivalente a uma plataforma SaaS completa como o Codecademy ou Alura). Para garantir o sucesso, proponho dividirmos o desenvolvimento em **fases**. Podemos começar construindo o alicerce e a experiência principal de um módulo de curso interativo. Você concorda com essa abordagem iterativa?
+
+## ❓ Perguntas Abertas
+
+1. **Banco de Dados**: Você prefere PostgreSQL (Relacional) ou MongoDB (NoSQL)? Propus PostgreSQL pela natureza relacional de alunos, cursos, aulas e progressos, mas podemos usar MongoDB se preferir.
+2. **Execução de Código (Services)**: Para a execução real de código (Python, Ruby, etc.), as melhores práticas envolvem executar o código em containers Docker isolados (segurança) ou usar uma API de execução de código remota (ex: Piston API ou Judge0). Para o MVP/Fase Inicial, podemos focar na execução via JavaScript no próprio navegador (usando `eval` de forma segura ou Web Workers) e simular as outras linguagens, ou você deseja já configurar uma API de execução real desde o início?
+3. **Escopo Inicial**: Qual curso/tópico você gostaria que fosse o conteúdo de teste/padrão para o nosso primeiro módulo interativo? (ex: "Lógica de Programação Básica").
+
+## 📝 Plano de Implementação Proposto (Faseado)
+
+### Fase 1: Configuração do Monorepo e Fundações (Imediato)
+- [x] Criação das pastas base (`/frontend`, `/backend`, `/services`, `/docs`).
+- [x] Inicialização do Frontend (Vite + React + TypeScript + TailwindCSS).
+- [x] Configuração do tema Dark + Neon no Tailwind (cores de alto contraste confortáveis: roxo, azul, verde).
+- [x] Inicialização do Backend (Node.js + Express + Prisma + Configuração do DB).
+- [x] Criação do esquema básico de Banco de Dados (Users, Courses, Lessons, Progress).
+
+### Fase 2: Construção da Interface e UX Inclusiva (Frontend)
+- [x] Criação do Design System de componentes (botões grandes, tipografia limpa 'Inter' ou 'Roboto').
+- [x] Implementação do layout principal com Sidebar e modo "Focus" (toggle que esconde distrações).
+- [x] Integração do Monaco Editor com tema dark customizado.
+- [x] Implementação das animações suaves de recompensa (Framer Motion).
+
+### Fase 3: Backend e Autenticação
+- [x] Implementação de registro e login de usuários (JWT).
+- [x] Rotas da API para buscar módulos, lições e desafios.
+- [x] Rotas para salvar e recuperar o progresso do usuário e código digitado.
+
+### Fase 4: Integração Frontend-Backend e Lógica de Execução
+- [x] Conexão do Dashboard do usuário com os dados reais do Backend.
+- [ ] Implementação do validador de desafios (checar se o código atende aos requisitos).
+- [ ] Feedback visual imediato e barra de progresso preenchendo ao completar tarefas.
+
+### Fase 5: Refinamentos e Gamificação Leve
+- Sistema de XP simples e visualização de Streak (dias seguidos).
+- Ajustes finos de acessibilidade (cores, contraste, sons opcionais).
+- Modo de "leitura guiada" (destaque linha a linha das explicações).
+
+## Plano de Verificação
+
+### Testes Manuais Focados na UX (Acessibilidade)
+- Validar se o Modo Foco (remoção de distrações) funciona corretamente.
+- Testar a paleta de cores para garantir que não causa fadiga visual.
+- Verificar a reatividade do Monaco Editor e a clareza da formatação do código.
+- Testar o fluxo completo de "Completar Desafio -> Receber Feedback Positivo -> Próxima Aula".
+
+Aguardando sua aprovação para iniciarmos a Fase 1!
