@@ -109,11 +109,15 @@ export const validateLessonCode = async (req: Request, res: Response): Promise<v
     if (language === 'html' || language === 'css') {
        outputStr = code;
        if (lesson.validationLogic) {
-           const validationScriptStr = `(${lesson.validationLogic})(outputStr, code)`;
+           // CVS fix: execute the validation block as a script (declares `validate`),
+           // then call validate() explicitly — avoids SyntaxError from bare `validate;`
+           const validationScriptStr = `${lesson.validationLogic}\nvalidate(outputStr, code)`;
            const validationContext = vm.createContext({ outputStr, code });
            try {
              success = vm.runInContext(validationScriptStr, validationContext);
            } catch(e) {
+             // Log so malformed validationLogic is visible in server output
+             console.error(`[CVS] validationLogic threw for lesson ${id}:`, e);
              success = false;
            }
        } else {
@@ -142,11 +146,14 @@ export const validateLessonCode = async (req: Request, res: Response): Promise<v
          }
 
          if (lesson.validationLogic) {
-             const validationScriptStr = `(${lesson.validationLogic})(outputStr, code)`;
+             // CVS fix: execute the validation block as a script (declares `validate`),
+             // then call validate() explicitly — avoids SyntaxError from bare `validate;`
+             const validationScriptStr = `${lesson.validationLogic}\nvalidate(outputStr, code)`;
              const validationContext = vm.createContext({ outputStr, code });
              try {
                success = vm.runInContext(validationScriptStr, validationContext);
              } catch(e) {
+               console.error(`[CVS] validationLogic threw for lesson ${id} (java):`, e);
                success = false;
              }
          } else {
@@ -174,11 +181,18 @@ export const validateLessonCode = async (req: Request, res: Response): Promise<v
         outputStr = logs.join('\n');
 
         if (lesson.validationLogic) {
-            const validationScriptStr = `(${lesson.validationLogic})(outputStr, code)`;
+            // CVS fix: execute the validation block as a script (declares `validate`),
+            // then call validate() explicitly — avoids SyntaxError from bare `validate;`
+            const validationScriptStr = `${lesson.validationLogic}\nvalidate(outputStr, code)`;
             const validationContext = vm.createContext({ outputStr, code });
-            success = vm.runInContext(validationScriptStr, validationContext);
+            try {
+              success = vm.runInContext(validationScriptStr, validationContext);
+            } catch(e) {
+              console.error(`[CVS] validationLogic threw for lesson ${id} (js):`, e);
+              success = false;
+            }
         } else {
-            success = true; 
+            success = true;
         }
       } catch (err: any) {
         outputStr = `Erro: ${err.message}`;
@@ -187,16 +201,21 @@ export const validateLessonCode = async (req: Request, res: Response): Promise<v
     }
 
     if (success && userId) {
-        await prisma.progress.upsert({
-           where: { userId_lessonId: { userId, lessonId: id } },
-           update: { status: 'COMPLETED', savedCode: code, completedAt: new Date() },
-           create: { userId, lessonId: id, status: 'COMPLETED', savedCode: code, completedAt: new Date() }
-        });
-        
-        await prisma.user.update({
-           where: { id: userId },
-           data: { xp: { increment: 20 } }
-        });
+        try {
+          await prisma.progress.upsert({
+             where: { userId_lessonId: { userId, lessonId: id } },
+             update: { status: 'COMPLETED', savedCode: code, completedAt: new Date() },
+             create: { userId, lessonId: id, status: 'COMPLETED', savedCode: code, completedAt: new Date() }
+          });
+          
+          await prisma.user.update({
+             where: { id: userId },
+             data: { xp: { increment: 20 } }
+          });
+        } catch (progressError) {
+          // Progresso não pôde ser salvo (ex: userId não existe) — não interrompe a resposta
+          console.warn(`[Progress] Não foi possível salvar progresso para userId=${userId}:`, progressError instanceof Error ? progressError.message : progressError);
+        }
     }
 
     res.json({ success, output: outputStr });

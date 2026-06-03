@@ -117,3 +117,13 @@ export function isV2Content(content: unknown): content is LessonContentV2 {
     Array.isArray((content as Record<string, unknown>).blocks)
   );
 }
+
+// === NAIS Re-exports ===
+// Central re-export for NAIS types so consumers can import from types.ts
+
+export type { SpecialInterest, ConceptStatus, LearnerProfile, ConceptState } from '../engine/learnerModel';
+export type { StuckAnalysis } from '../engine/stuckDetector';
+export type { StrategyType } from '../engine/strategyEngine';
+export type { EmotionalAdaptation, EmotionalTone } from '../engine/emotionalAdapter';
+export type { DecisionAction } from '../engine/decisionEngine';
+

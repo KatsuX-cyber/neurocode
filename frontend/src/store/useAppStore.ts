@@ -9,6 +9,16 @@ import type {
   SensoryPreferences,
 } from '../types';
 import { classifyState } from '../engine/adaptiveEngine';
+import type { LearnerProfile, SpecialInterest } from '../engine/learnerModel';
+import type { StrategyType } from '../engine/strategyEngine';
+import type { StuckAnalysis } from '../engine/stuckDetector';
+import type { DecisionAction } from '../engine/decisionEngine';
+import {
+  createDefaultProfile,
+  updateProfileAfterAttempt,
+  loadProfileFromBackend,
+  saveProfileToBackend,
+} from '../engine/learnerModel';
 
 // === Defaults ===
 
@@ -85,6 +95,36 @@ interface AppState {
   // --- Sensory Preferences ---
   preferences: SensoryPreferences;
   updatePreferences: (prefs: Partial<SensoryPreferences>) => void;
+
+  // ============================================================
+  // NAIS — Adaptive Intelligence State
+  // ============================================================
+
+  // --- Learner Profile ---
+  learnerProfile: LearnerProfile | null;
+  naisLoading: boolean;
+  loadLearnerProfile: (userId: string) => Promise<void>;
+  setLearnerProfile: (profile: LearnerProfile) => void;
+  updateLearnerAfterAttempt: (
+    conceptKey: string,
+    success: boolean,
+    timeSpent: number,
+    hintsUsed: number,
+    strategy: string,
+  ) => void;
+  syncLearnerToBackend: () => Promise<void>;
+
+  // --- Interests ---
+  addSpecialInterest: (interest: SpecialInterest) => void;
+  removeSpecialInterest: (interest: SpecialInterest) => void;
+
+  // --- Strategy & Decision ---
+  currentStrategy: StrategyType;
+  setCurrentStrategy: (strategy: StrategyType) => void;
+  lastStuckAnalysis: StuckAnalysis | null;
+  setLastStuckAnalysis: (analysis: StuckAnalysis | null) => void;
+  lastDecision: DecisionAction | null;
+  setLastDecision: (decision: DecisionAction | null) => void;
 }
 
 // === Store ===
@@ -199,6 +239,75 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           preferences: { ...s.preferences, ...prefs },
         })),
+
+      // ============================================================
+      // NAIS — Adaptive Intelligence
+      // ============================================================
+
+      // --- Learner Profile ---
+      learnerProfile: null,
+      naisLoading: false,
+
+      loadLearnerProfile: async (userId) => {
+        set({ naisLoading: true });
+        try {
+          const profile = await loadProfileFromBackend(userId);
+          set({ learnerProfile: profile, naisLoading: false });
+        } catch {
+          // Fallback to default
+          set({ learnerProfile: createDefaultProfile(userId), naisLoading: false });
+        }
+      },
+
+      setLearnerProfile: (profile) => set({ learnerProfile: profile }),
+
+      updateLearnerAfterAttempt: (conceptKey, success, timeSpent, hintsUsed, strategy) => {
+        const current = get().learnerProfile;
+        if (!current) return;
+        const updated = updateProfileAfterAttempt(current, conceptKey, success, timeSpent, hintsUsed, strategy);
+        set({ learnerProfile: updated });
+      },
+
+      syncLearnerToBackend: async () => {
+        const profile = get().learnerProfile;
+        if (profile) {
+          await saveProfileToBackend(profile);
+        }
+      },
+
+      // --- Interests ---
+      addSpecialInterest: (interest) => {
+        const profile = get().learnerProfile;
+        if (!profile) return;
+        if (profile.specialInterests.includes(interest)) return;
+        set({
+          learnerProfile: {
+            ...profile,
+            specialInterests: [...profile.specialInterests, interest].slice(0, 3), // max 3
+          },
+        });
+      },
+
+      removeSpecialInterest: (interest) => {
+        const profile = get().learnerProfile;
+        if (!profile) return;
+        set({
+          learnerProfile: {
+            ...profile,
+            specialInterests: profile.specialInterests.filter(i => i !== interest),
+          },
+        });
+      },
+
+      // --- Strategy & Decision ---
+      currentStrategy: 'technical',
+      setCurrentStrategy: (strategy) => set({ currentStrategy: strategy }),
+
+      lastStuckAnalysis: null,
+      setLastStuckAnalysis: (analysis) => set({ lastStuckAnalysis: analysis }),
+
+      lastDecision: null,
+      setLastDecision: (decision) => set({ lastDecision: decision }),
     }),
     {
       name: 'neurocode-store',
@@ -214,6 +323,9 @@ export const useAppStore = create<AppState>()(
         exerciseHistory: state.exerciseHistory,
         preferences: state.preferences,
         isFocusMode: state.isFocusMode,
+        // NAIS: persist learner profile locally as cache
+        learnerProfile: state.learnerProfile,
+        currentStrategy: state.currentStrategy,
       }),
     }
   )

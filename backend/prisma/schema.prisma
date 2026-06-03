@@ -8,16 +8,17 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(uuid())
-  name      String
-  email     String     @unique
-  password  String
-  role      String     @default("STUDENT") // STUDENT, ADMIN
-  xp        Int        @default(0)
-  streak    Int        @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  progress  Progress[]
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         String        @default("STUDENT") // STUDENT, ADMIN
+  xp           Int           @default(0)
+  streak       Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  progress     Progress[]
+  learnerModel LearnerModel?
 }
 
 model Course {
@@ -35,7 +36,7 @@ model Module {
   id          String   @id @default(uuid())
   title       String
   description String
-  courseId    String
+  courseId     String
   course      Course   @relation(fields: [courseId], references: [id])
   order       Int      @default(0)
   lessons     Lesson[]
@@ -71,4 +72,97 @@ model Progress {
   updatedAt   DateTime  @updatedAt
 
   @@unique([userId, lessonId])
+}
+
+// ============================================================
+// NAIS — NeuroCode Adaptive Intelligence System
+// Persistent Learner Model & Teaching History
+// ============================================================
+
+model LearnerModel {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id])
+  
+  // Special interests (JSON string array)
+  specialInterests    String   @default("[]")
+  
+  // Aggregated metrics
+  avgTimePerExercise  Float    @default(0)
+  totalHintsUsed      Int      @default(0)
+  totalExercises      Int      @default(0)
+  totalCorrect        Int      @default(0)
+  avgAccuracy         Float    @default(0)
+  progressSpeed       Float    @default(1.0) // 1.0 = normal
+
+  // Estimated states (0.0 - 1.0)
+  estimatedConfidence Float    @default(0.5)
+  estimatedFatigue    Float    @default(0)
+  estimatedEngagement Float    @default(0.7)
+
+  // Strategy memory (JSON: { strategyId: effectivenessScore })
+  strategyScores      String   @default("{}")
+
+  // Auto-detected preferences
+  preferredStrategy   String?
+
+  // Timestamps
+  lastSessionAt       DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  conceptMastery      ConceptMastery[]
+  teachingEvents      TeachingEvent[]
+}
+
+model ConceptMastery {
+  id              String       @id @default(uuid())
+  learnerModelId  String
+  learnerModel    LearnerModel @relation(fields: [learnerModelId], references: [id])
+
+  conceptKey      String // e.g. "html_h1_tag", "css_color", "js_variables"
+
+  // Mastery: "unknown" | "fragile" | "learning" | "mastered" | "critical"
+  status          String   @default("unknown")
+
+  // Error tracking
+  errorCount      Int      @default(0)
+  errorPatterns   String   @default("[]") // JSON array of pattern strings
+
+  // Timing
+  avgTime         Float    @default(0)
+  lastPracticed   DateTime?
+
+  // Per-strategy effectiveness history for this concept
+  strategyHistory String   @default("[]") // JSON: [{strategy, success, timestamp}]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([learnerModelId, conceptKey])
+}
+
+model TeachingEvent {
+  id              String       @id @default(uuid())
+  learnerModelId  String
+  learnerModel    LearnerModel @relation(fields: [learnerModelId], references: [id])
+
+  lessonId        String?
+  conceptKey      String
+
+  // What happened
+  eventType       String  // "attempt" | "hint_used" | "strategy_switch" | "success" | "stuck_detected"
+  strategyUsed    String? // which teaching strategy was active
+
+  // Outcome
+  success         Boolean  @default(false)
+  timeSpent       Float    @default(0)
+  hintsUsed       Int      @default(0)
+  attemptsCount   Int      @default(0)
+
+  // Context
+  emotionalState  String? // "flow" | "learning" | "struggling" | "frustrated" | "disengaged"
+
+  createdAt       DateTime @default(now())
 }

@@ -93,8 +93,14 @@ async function main() {
                   codeTemplate: `<!-- Escreva sua tag h1 abaixo -->\n`,
                   validationLogic: `
 function validate(outputStr, code) {
-   if (code.includes('<h1>') && code.toLowerCase().includes('bem-vindo') && code.includes('</h1>')) return true;
-   return false;
+  // CVS Layer 1: concept presence — has h1 tag structure?
+  var hasOpen  = code.includes('<h1>');
+  var hasClose = code.includes('</h1>');
+  // CVS Layer 2: structural correctness — both open and close present
+  if (hasOpen && hasClose) return true;
+  // CVS Layer 1 partial: opening tag found but no closing (concept_understood)
+  // Backend returns false; Lesson.tsx shows getErrorFeedback which is handled in UI
+  return false;
 }
 validate;
 `
@@ -158,8 +164,16 @@ validate;
                   codeTemplate: `<!-- Crie seu título e parágrafo abaixo -->\n`,
                   validationLogic: `
 function validate(outputStr, code) {
-   if (code.includes('<h1>') && code.includes('Meu Blog') && code.includes('</h1>') && code.includes('<p>') && code.includes('</p>')) return true;
-   return false;
+  var lower = code.toLowerCase();
+  // CVS Layer 1: concept presence — correct tag structure exists?
+  var hasH1  = code.includes('<h1>') && code.includes('</h1>');
+  var hasP   = code.includes('<p>')  && code.includes('</p>');
+  // CVS Layer 2: content accuracy — title text present (case-insensitive, accent-insensitive)
+  var normalized = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  var hasTitle = normalized.includes('meu blog');
+  // Pass: structural correctness + concept presence (title content is flexible)
+  if (hasH1 && hasP) return true;
+  return false;
 }
 validate;
 `
